@@ -1,0 +1,46 @@
+volumes:
+  nextcloud-data:
+  nextcloud-db:
+  nextcloud-cache:
+
+services:
+  nextcloud-app:
+    image: nextcloud
+    restart: always
+    depends_on:
+      - nextcloud-db
+      - nextcloud-cache
+    volumes:
+      - nextcloud-data:/var/www/html
+    ports:
+      - "80:80"
+    environment:
+      - MYSQL_PASSWORD=INSERT_SECRET_DB_PASSWORD_HERE
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=nextcloud-db
+      # Please make sure to set the value to the URL that your users mainly use to access this Nextcloud
+      # The value should contain the full base URL
+      # See overwrite.cli.url
+      - OVERWRITECLIURL=https://www.example.com/nextcloud  # https://cloud.therolf.fr
+      # Tell nextcloud to use https because we are behind a reverse proxy
+      - OVERWRITEPROTOCOL=https
+
+  nextcloud-cache:
+    image: redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - nextcloud-cache:/data
+
+  nextcloud-db:
+    image: "mariadb:11.4"
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - nextcloud-db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=INSERT_SECRET_DB_PASSWORD_HERE
+      - MYSQL_PASSWORD=INSERT_SECRET_DB_PASSWORD_HERE
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
